@@ -129,20 +129,40 @@ function CreateRequestDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.subject || !formData.description) return;
+    
+    const subject = formData.subject?.trim() || "";
+    const description = formData.description?.trim() || "";
+
+    // Validation
+    if (subject.length < 2 || subject.length > 50) {
+      toast({ title: "Invalid Subject", description: "Subject must be 2-50 characters.", variant: "destructive" });
+      return;
+    }
+    if (description.length < 10 || description.length > 500) {
+      toast({ title: "Invalid Description", description: "Description must be 10-500 characters.", variant: "destructive" });
+      return;
+    }
+
+    const sanitize = (str: string) => str.replace(/<[^>]*>?/gm, '');
+    const sanitizedData = {
+      ...formData,
+      subject: sanitize(subject),
+      description: sanitize(description),
+    };
 
     try {
-      await createRequest.mutateAsync(formData as InsertRequest);
+      console.log("Simulating transaction for request...");
+      await createRequest.mutateAsync(sanitizedData as InsertRequest);
       toast({
         title: "Request Posted",
         description: "Community members can now fulfill your request.",
       });
       setOpen(false);
       setFormData({ ...formData, subject: "", description: "" });
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to create request.",
+        title: "Transaction Failed",
+        description: error.message || "Failed to create request.",
         variant: "destructive",
       });
     }

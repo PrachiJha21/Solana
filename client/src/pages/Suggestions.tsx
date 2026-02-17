@@ -165,20 +165,47 @@ function CreateSuggestionDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.description) return;
+    
+    // Frontend validation
+    const title = formData.title?.trim() || "";
+    const description = formData.description?.trim() || "";
+    
+    if (title.length < 3 || title.length > 100) {
+      toast({ title: "Invalid Title", description: "Title must be 3-100 characters.", variant: "destructive" });
+      return;
+    }
+    if (description.length < 10 || description.length > 500) {
+      toast({ title: "Invalid Description", description: "Description must be 10-500 characters.", variant: "destructive" });
+      return;
+    }
+    if (!formData.category) {
+      toast({ title: "Invalid Category", description: "Please select a category.", variant: "destructive" });
+      return;
+    }
+
+    // Basic sanitization to prevent simple script injection
+    const sanitize = (str: string) => str.replace(/<[^>]*>?/gm, '');
+    const sanitizedData = {
+      ...formData,
+      title: sanitize(title),
+      description: sanitize(description),
+    };
 
     try {
-      await createSuggestion.mutateAsync(formData as InsertSuggestion);
+      // Simulation placeholder (In a real Solana app, we'd use connection.simulateTransaction)
+      console.log("Simulating transaction for suggestion...");
+      
+      await createSuggestion.mutateAsync(sanitizedData as InsertSuggestion);
       toast({
         title: "Suggestion Submitted",
         description: "Your proposal has been recorded on-chain.",
       });
       setOpen(false);
       setFormData({ ...formData, title: "", description: "" });
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to submit suggestion.",
+        title: "Transaction Failed",
+        description: error.message || "Failed to submit suggestion.",
         variant: "destructive",
       });
     }

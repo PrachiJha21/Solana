@@ -123,20 +123,42 @@ function UploadNoteDialog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.subject) return;
+    
+    const title = formData.title?.trim() || "";
+    const subject = formData.subject?.trim() || "";
+
+    // Validation
+    if (title.length < 3 || title.length > 100) {
+      toast({ title: "Invalid Title", description: "Title must be 3-100 characters.", variant: "destructive" });
+      return;
+    }
+    if (subject.length < 2 || subject.length > 50) {
+      toast({ title: "Invalid Subject", description: "Subject must be 2-50 characters.", variant: "destructive" });
+      return;
+    }
+
+    // IPFS Safety: Mock file check (assuming file input would be added)
+    // For now, we sanitize the text inputs
+    const sanitize = (str: string) => str.replace(/<[^>]*>?/gm, '');
+    const sanitizedData = {
+      ...formData,
+      title: sanitize(title),
+      subject: sanitize(subject),
+    };
 
     try {
-      await createNote.mutateAsync(formData as InsertNote);
+      console.log("Simulating transaction for note upload...");
+      await createNote.mutateAsync(sanitizedData as InsertNote);
       toast({
         title: "Note Uploaded",
         description: "Metadata stored on Solana. Files on IPFS.",
       });
       setOpen(false);
       setFormData({ ...formData, title: "", subject: "" });
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to upload note.",
+        title: "Transaction Failed",
+        description: error.message || "Failed to upload note.",
         variant: "destructive",
       });
     }

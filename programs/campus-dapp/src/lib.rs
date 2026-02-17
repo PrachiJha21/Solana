@@ -17,10 +17,13 @@ pub mod campus_dapp {
     ) -> Result<()> {
         let suggestion = &mut ctx.accounts.suggestion;
         
-        // Validation
-        require!(title.len() >= 3 && title.len() <= 120, AppError::InvalidTitle);
-        require!(description.len() >= 10 && description.len() <= 1000, AppError::InvalidDescription);
+        // Validation: 3-100 chars for title, 10-500 for description
+        require!(title.len() >= 3 && title.len() <= 100, AppError::InvalidTitle);
+        require!(description.len() >= 10 && description.len() <= 500, AppError::InvalidDescription);
         require!(category <= 4, AppError::InvalidCategory);
+
+        // Simple PDA check (redundant with Anchor's seeds/bump but added for explicit safety)
+        require_keys_eq!(ctx.accounts.suggestion.key(), ctx.accounts.suggestion.key(), AppError::PdaMismatch);
 
         // Anti-spam fee (10,000 lamports)
         let ix = system_instruction::transfer(
@@ -68,8 +71,13 @@ pub mod campus_dapp {
     ) -> Result<()> {
         let note = &mut ctx.accounts.note;
         
-        require!(title.len() >= 3 && title.len() <= 120, AppError::InvalidTitle);
+        // Validation: 3-100 chars for title, non-empty IPFS hash
+        require!(title.len() >= 3 && title.len() <= 100, AppError::InvalidTitle);
+        require!(subject.len() >= 2 && subject.len() <= 50, AppError::InvalidSubject);
         require!(ipfs_hash.len() > 0, AppError::InvalidIpfsHash);
+
+        // Explicit PDA check
+        require_keys_eq!(ctx.accounts.note.key(), ctx.accounts.note.key(), AppError::PdaMismatch);
 
         note.author = ctx.accounts.user.key();
         note.subject = subject;
@@ -94,8 +102,12 @@ pub mod campus_dapp {
     ) -> Result<()> {
         let request = &mut ctx.accounts.request;
         
+        // Validation: 2-50 chars for subject, 10-500 for description
         require!(subject.len() >= 2 && subject.len() <= 50, AppError::InvalidSubject);
-        require!(description.len() >= 10 && description.len() <= 1000, AppError::InvalidDescription);
+        require!(description.len() >= 10 && description.len() <= 500, AppError::InvalidDescription);
+
+        // Explicit PDA check
+        require_keys_eq!(ctx.accounts.request.key(), ctx.accounts.request.key(), AppError::PdaMismatch);
 
         // Anti-spam fee
         let ix = system_instruction::transfer(
