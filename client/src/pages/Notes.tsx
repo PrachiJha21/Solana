@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Layout } from "@/components/Layout";
+import  Layout  from "@/components/Layout";
 import { useNotes, useCreateNote } from "@/hooks/use-notes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

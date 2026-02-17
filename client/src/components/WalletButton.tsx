@@ -1,42 +1,33 @@
-import { useState } from "react";
-import { Wallet } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// client/src/components/ui/WalletButton.tsx
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
-export function WalletButton() {
-  const [connected, setConnected] = useState(false);
-  const [address, setAddress] = useState<string>("");
-
-  const connect = () => {
-    // Mock connection
-    setConnected(true);
-    setAddress("8x...3k9L");
-  };
-
-  const disconnect = () => {
-    setConnected(false);
-    setAddress("");
-  };
+export default function WalletButton() {
+  const { connected, publicKey, disconnect } = useWallet();
+  const { setVisible } = useWalletModal();
 
   if (connected) {
+    const short =
+      publicKey?.toBase58().slice(0, 4) + "…" + publicKey?.toBase58().slice(-4);
     return (
-      <Button 
-        variant="outline" 
-        onClick={disconnect}
-        className="font-mono bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-all duration-300"
-      >
-        <span className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse" />
-        {address}
-      </Button>
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">{short}</span>
+        <button
+          className="rounded-md border px-3 py-1 text-sm hover:bg-accent"
+          onClick={() => disconnect()}
+        >
+          Disconnect
+        </button>
+      </div>
     );
   }
 
   return (
-    <Button 
-      onClick={connect}
-      className="bg-black text-white hover:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300"
+    <button
+      className="rounded-md bg-primary px-3 py-1 text-sm text-primary-foreground hover:opacity-90"
+      onClick={() => setVisible(true)}
     >
-      <Wallet className="w-4 h-4 mr-2" />
       Connect Wallet
-    </Button>
+    </button>
   );
 }
