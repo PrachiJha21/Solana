@@ -13,7 +13,7 @@ type LayoutProps = {
   className?: string;
 };
 
-export default function Layout({ children, className }: LayoutProps) {
+export function Layout({ children, className }: LayoutProps) {
   return (
     <div className={cn("min-h-screen flex flex-col", className)}>
       {/* Top Nav */}
