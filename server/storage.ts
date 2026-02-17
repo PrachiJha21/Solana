@@ -1,38 +1,79 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
-
-// modify the interface with any CRUD methods
-// you might need
+import {
+  type Suggestion,
+  type InsertSuggestion,
+  type Note,
+  type InsertNote,
+  type Request,
+  type InsertRequest,
+  suggestions,
+  notes,
+  requests,
+} from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // Suggestions
+  getSuggestions(): Promise<Suggestion[]>;
+  createSuggestion(suggestion: InsertSuggestion): Promise<Suggestion>;
+
+  // Notes
+  getNotes(): Promise<Note[]>;
+  createNote(note: InsertNote): Promise<Note>;
+
+  // Requests
+  getRequests(): Promise<Request[]>;
+  createRequest(request: InsertRequest): Promise<Request>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+export class DatabaseStorage implements IStorage {
+  // Suggestions
+  async getSuggestions(): Promise<Suggestion[]> {
+    return await db.select().from(suggestions);
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async createSuggestion(insertSuggestion: InsertSuggestion): Promise<Suggestion> {
+    const [suggestion] = await db
+      .insert(suggestions)
+      .values({
+        ...insertSuggestion,
+        pubkey: "MockPubkey-" + Math.random().toString(36).substring(7),
+      })
+      .returning();
+    return suggestion;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  // Notes
+  async getNotes(): Promise<Note[]> {
+    return await db.select().from(notes);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async createNote(insertNote: InsertNote): Promise<Note> {
+    const [note] = await db
+      .insert(notes)
+      .values({
+        ...insertNote,
+        pubkey: "MockPubkey-" + Math.random().toString(36).substring(7),
+      })
+      .returning();
+    return note;
+  }
+
+  // Requests
+  async getRequests(): Promise<Request[]> {
+    return await db.select().from(requests);
+  }
+
+  async createRequest(insertRequest: InsertRequest): Promise<Request> {
+    const [request] = await db
+      .insert(requests)
+      .values({
+        ...insertRequest,
+        pubkey: "MockPubkey-" + Math.random().toString(36).substring(7),
+      })
+      .returning();
+    return request;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
