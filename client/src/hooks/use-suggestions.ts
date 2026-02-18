@@ -12,6 +12,7 @@ export function useSuggestions() {
       if (!res.ok) throw new Error("Failed to fetch suggestions");
       return api.suggestions.list.responses[200].parse(await res.json());
     },
+    refetchInterval: 10000,
   });
 }
 
