@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lightbulb, BookOpen, HelpCircle, ShieldCheck, Zap, Users, MessageSquare } from "lucide-react";
-// import { motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { SolanaStatus } from "@/components/SolanaStatus";
 
 export default function Home() {
