@@ -1,8 +1,9 @@
 import { Link } from "wouter";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Lightbulb, BookOpen, HelpCircle, ShieldCheck, Zap, Users } from "lucide-react";
+import { ArrowRight, Lightbulb, BookOpen, HelpCircle, ShieldCheck, Zap, Users, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
+import { SolanaStatus } from "@/components/SolanaStatus";
 
 export default function Home() {
   return (
@@ -11,53 +12,58 @@ export default function Home() {
         
         {/* Hero Section */}
         <section className="text-center space-y-8 max-w-4xl mx-auto pt-10">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-4"
-          >
-            <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary">
-              <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
-              Live on Solana Devnet
-            </div>
-            <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-foreground">
-              Decentralized <br className="hidden md:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
-                Student Governance
-              </span>
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Empower your campus voice. Submit proposals, share academic resources, and vote on what matters most to your student community.
-            </p>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Link href="/suggestions">
-              <Button size="lg" className="h-12 px-8 text-lg rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-0.5 transition-all">
-                Get Started
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/notes">
-              <Button size="lg" variant="outline" className="h-12 px-8 text-lg rounded-full hover:bg-muted/50">
-                Browse Notes
-              </Button>
-            </Link>
-          </motion.div>
+          <div className="flex flex-col md:flex-row gap-8 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex-1 space-y-4 text-left"
+            >
+              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary">
+                <span className="flex h-2 w-2 rounded-full bg-primary mr-2 animate-pulse"></span>
+                Campus Governance 2.0
+              </div>
+              <h1 className="text-5xl md:text-7xl font-display font-bold tracking-tight text-foreground">
+                Decentralized <br className="hidden md:block" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">
+                  Student Life
+                </span>
+              </h1>
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Empower your campus voice. Submit proposals, share academic resources, and participate in student-led governance.
+              </p>
+              <div className="flex flex-wrap gap-4 pt-4">
+                <Link href="/suggestions">
+                  <Button size="lg" className="rounded-full px-8 shadow-lg shadow-primary/25">
+                    Explore DAO
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/discussion">
+                  <Button size="lg" variant="outline" className="rounded-full px-8">
+                    Community Hub
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="w-full md:w-80"
+            >
+              <SolanaStatus />
+            </motion.div>
+          </div>
         </section>
 
         {/* Features Grid */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
           <FeatureCard 
             icon={Lightbulb}
-            title="Campus Suggestions"
-            description="Submit proposals for campus improvements. Vote on chain for transparency."
+            title="Suggestions"
+            description="Propose changes and vote for campus improvements."
             href="/suggestions"
             color="text-amber-500"
             bg="bg-amber-500/10"
@@ -65,18 +71,26 @@ export default function Home() {
           <FeatureCard 
             icon={BookOpen}
             title="Academic Notes"
-            description="Decentralized IPFS storage for lecture notes, research papers, and study guides."
+            description="Access peer-reviewed study materials and notes."
             href="/notes"
             color="text-blue-500"
             bg="bg-blue-500/10"
           />
           <FeatureCard 
             icon={HelpCircle}
-            title="Request Notes"
-            description="Need help with a subject? Request notes from the community and reward contributors."
+            title="Request Hub"
+            description="Need materials? Ask the community for help."
             href="/requests"
             color="text-purple-500"
             bg="bg-purple-500/10"
+          />
+          <FeatureCard 
+            icon={MessageSquare}
+            title="Discussions"
+            description="Academic forum for peer-to-peer learning."
+            href="/discussion"
+            color="text-green-500"
+            bg="bg-green-500/10"
           />
         </section>
 

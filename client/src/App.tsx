@@ -14,6 +14,7 @@ import Home from "@/pages/Home";
 import Suggestions from "@/pages/Suggestions";
 import Notes from "@/pages/Notes";
 import Requests from "@/pages/Requests";
+import Discussion from "@/pages/Discussion";
 import NotFound from "@/pages/not-found";
 
 /* ---------- Router ---------- */
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/suggestions" component={Suggestions} />
       <Route path="/notes" component={Notes} />
       <Route path="/requests" component={Requests} />
+      <Route path="/discussion" component={Discussion} />
       <Route component={NotFound} />
     </Switch>
   );

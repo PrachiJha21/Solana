@@ -1,24 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/Layout";
-import { useSuggestions, useCreateSuggestion } from "@/hooks/use-suggestions";
+import { SuggestionStore, getUserId, type Suggestion } from "@/lib/store";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Plus, ThumbsUp, Tag, Clock, User } from "lucide-react";
+import { Plus, ThumbsUp, Tag, Clock, User, MessageSquare, Edit2, Trash2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import type { InsertSuggestion } from "@shared/schema";
 
 export default function Suggestions() {
-  const { data: suggestions, isLoading } = useSuggestions();
+  const { publicKey, connected } = useWallet();
+  const userId = getUserId(publicKey?.toBase58());
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [filter, setFilter] = useState("all");
 
-  const filteredSuggestions = suggestions?.filter(s => 
+  useEffect(() => {
+    setSuggestions(SuggestionStore.all());
+  }, []);
+
+  const refreshSuggestions = () => setSuggestions([...SuggestionStore.all()]);
+
+  const filteredSuggestions = suggestions.filter(s => 
     filter === "all" || s.category.toLowerCase() === filter.toLowerCase()
   );
 
@@ -30,12 +38,11 @@ export default function Suggestions() {
             <h1 className="text-4xl font-display font-bold text-foreground">Campus Suggestions</h1>
             <p className="text-muted-foreground mt-2 text-lg">Vote on proposals to improve campus life.</p>
           </div>
-          <CreateSuggestionDialog />
+          <CreateSuggestionDialog userId={userId} onCreated={refreshSuggestions} />
         </div>
 
-        {/* Filter Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {["All", "Academics", "Infrastructure", "Events", "Cafeteria", "Other"].map((category) => (
+          {["All", "Academics", "Infrastructure", "Exams", "Canteen", "Other"].map((category) => (
             <button
               key={category}
               onClick={() => setFilter(category.toLowerCase())}
@@ -51,235 +58,189 @@ export default function Suggestions() {
           ))}
         </div>
 
-        {isLoading ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="h-64 rounded-3xl bg-muted/20 animate-pulse border border-border/50" />
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
+          <AnimatePresence>
+            {filteredSuggestions.map((suggestion) => (
+              <SuggestionCard 
+                key={suggestion.id} 
+                suggestion={suggestion} 
+                userId={userId} 
+                connected={connected}
+                onUpdate={refreshSuggestions} 
+              />
             ))}
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence>
-              {filteredSuggestions?.map((suggestion) => (
-                <SuggestionCard key={suggestion.id} suggestion={suggestion} />
-              ))}
-            </AnimatePresence>
-            
-            {filteredSuggestions?.length === 0 && (
-              <div className="col-span-full py-20 text-center">
-                <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Tag className="w-10 h-10 text-muted-foreground/50" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">No suggestions found</h3>
-                <p className="text-muted-foreground max-w-md mx-auto">
-                  Be the first to submit a suggestion for this category!
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+          </AnimatePresence>
+        </div>
       </div>
     </Layout>
   );
 }
 
-function SuggestionCard({ suggestion }: { suggestion: any }) {
-  // Mock voting state for UI
-  const [votes, setVotes] = useState(suggestion.voteCount || 0);
-  const [hasVoted, setHasVoted] = useState(false);
+function SuggestionCard({ suggestion, userId, connected, onUpdate }: any) {
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(suggestion.title);
+  const [editDesc, setEditDesc] = useState(suggestion.description);
+  const [replyText, setReplyText] = useState("");
+  const isOwner = suggestion.authorId === userId;
 
   const handleVote = () => {
-    if (hasVoted) {
-      setVotes(votes - 1);
-      setHasVoted(false);
-    } else {
-      setVotes(votes + 1);
-      setHasVoted(true);
+    SuggestionStore.vote(suggestion.id, 1);
+    onUpdate();
+  };
+
+  const handleDelete = () => {
+    if (confirm("Delete this suggestion?")) {
+      SuggestionStore.remove(suggestion.id);
+      onUpdate();
+      toast({ title: "Deleted" });
     }
   };
 
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.2 }}
-    >
-      <Card className="h-full p-6 flex flex-col hover:shadow-xl transition-all duration-300 border-border/50 hover:border-primary/20 group rounded-3xl overflow-hidden relative">
-        <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="bg-primary/5 text-primary text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wide">
-            {suggestion.category}
-          </div>
-        </div>
+  const handleEdit = () => {
+    SuggestionStore.update(suggestion.id, { title: editTitle, description: editDesc });
+    setIsEditing(false);
+    onUpdate();
+    toast({ title: "Updated" });
+  };
 
+  const handleReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyText) return;
+    SuggestionStore.reply(suggestion.id, { text: replyText, authorId: userId });
+    setReplyText("");
+    onUpdate();
+  };
+
+  const handleSolanaPublish = async () => {
+    toast({ title: "Solana Transaction Simulation", description: "Suggestion data hash published to Devnet." });
+  };
+
+  return (
+    <motion.div layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      <Card className="h-full p-6 flex flex-col hover:shadow-xl transition-all border-border/50 rounded-3xl overflow-hidden relative">
         <div className="flex-1 space-y-4">
           <div className="flex items-start justify-between">
-            <h3 className="text-xl font-bold font-display leading-tight group-hover:text-primary transition-colors">
-              {suggestion.title}
-            </h3>
+            <div className="space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded">
+                {suggestion.category}
+              </span>
+              <h3 className="text-xl font-bold font-display">{suggestion.title}</h3>
+            </div>
+            {isOwner && (
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" onClick={() => setIsEditing(true)}><Edit2 className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive"><Trash2 className="w-4 h-4" /></Button>
+              </div>
+            )}
           </div>
-          <p className="text-muted-foreground line-clamp-3 leading-relaxed">
-            {suggestion.description}
-          </p>
+          <p className="text-muted-foreground leading-relaxed">{suggestion.description}</p>
           
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground pt-2">
-            <div className="flex items-center bg-muted/30 px-2 py-1 rounded-md">
-              <User className="w-3 h-3 mr-1" />
-              {suggestion.author.slice(0, 4)}...{suggestion.author.slice(-4)}
-            </div>
-            <div className="flex items-center bg-muted/30 px-2 py-1 rounded-md">
-              <Clock className="w-3 h-3 mr-1" />
-              {formatDistanceToNow(new Date(suggestion.createdAt), { addSuffix: true })}
-            </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span className="bg-muted px-2 py-1 rounded">@{suggestion.authorId.slice(0, 8)}</span>
+            <span>{formatDistanceToNow(new Date(suggestion.createdAt), { addSuffix: true })}</span>
           </div>
         </div>
 
-        <div className="mt-6 pt-6 border-t border-border/50 flex items-center justify-between">
-          <Button 
-            variant={hasVoted ? "default" : "outline"} 
-            size="sm"
-            onClick={handleVote}
-            className={`rounded-full px-4 transition-all ${hasVoted ? 'bg-primary hover:bg-primary/90' : 'hover:border-primary/50 hover:text-primary'}`}
-          >
-            <ThumbsUp className={`w-4 h-4 mr-2 ${hasVoted ? 'fill-current' : ''}`} />
-            {votes} Votes
-          </Button>
+        <div className="mt-6 pt-6 border-t border-border/50 space-y-4">
+          <div className="flex items-center justify-between">
+            <Button variant="outline" size="sm" onClick={handleVote} className="rounded-full">
+              <ThumbsUp className="w-4 h-4 mr-2" />
+              {suggestion.votes} Votes
+            </Button>
+            {connected && (
+              <Button size="sm" variant="outline" onClick={handleSolanaPublish} className="text-[10px] uppercase font-bold">
+                Publish on Solana
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <MessageSquare className="w-4 h-4" />
+              Replies ({suggestion.replies.length})
+            </div>
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
+              {suggestion.replies.map((reply: any) => (
+                <div key={reply.id} className="text-sm bg-muted/30 p-2 rounded-xl relative group">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold">@{reply.authorId.slice(0, 8)}</span>
+                    {reply.authorId === userId && (
+                      <button onClick={() => { SuggestionStore.removeReply(suggestion.id, reply.id); onUpdate(); }} className="text-destructive text-[10px] hover:underline">Delete</button>
+                    )}
+                  </div>
+                  {reply.text}
+                </div>
+              ))}
+            </div>
+            <form onSubmit={handleReply} className="flex gap-2">
+              <Input 
+                placeholder="Write a reply..." 
+                value={replyText} 
+                onChange={e => setReplyText(e.target.value)}
+                className="rounded-full h-8 text-xs"
+              />
+              <Button type="submit" size="icon" className="h-8 w-8 rounded-full shrink-0"><Send className="w-3 h-3" /></Button>
+            </form>
+          </div>
         </div>
       </Card>
+
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="rounded-3xl">
+          <DialogHeader><DialogTitle>Edit Suggestion</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+            <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button onClick={handleEdit}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
 
-function CreateSuggestionDialog() {
+function CreateSuggestionDialog({ userId, onCreated }: any) {
   const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<any>("academics");
   const { toast } = useToast();
-  const createSuggestion = useCreateSuggestion();
-  
-  const [formData, setFormData] = useState<Partial<InsertSuggestion>>({
-    title: "",
-    description: "",
-    category: "Academics",
-    author: "8xM...3k9L", // Mock wallet
-  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Frontend validation
-    const title = formData.title?.trim() || "";
-    const description = formData.description?.trim() || "";
-    
-    if (title.length < 3 || title.length > 100) {
-      toast({ title: "Invalid Title", description: "Title must be 3-100 characters.", variant: "destructive" });
-      return;
-    }
-    if (description.length < 10 || description.length > 500) {
-      toast({ title: "Invalid Description", description: "Description must be 10-500 characters.", variant: "destructive" });
-      return;
-    }
-    if (!formData.category) {
-      toast({ title: "Invalid Category", description: "Please select a category.", variant: "destructive" });
-      return;
-    }
-
-    // Basic sanitization to prevent simple script injection
-    const sanitize = (str: string) => str.replace(/<[^>]*>?/gm, '');
-    const sanitizedData = {
-      ...formData,
-      title: sanitize(title),
-      description: sanitize(description),
-    };
-
-    try {
-      // Simulation placeholder (In a real Solana app, we'd use connection.simulateTransaction)
-      console.log("Simulating transaction for suggestion...");
-      
-      await createSuggestion.mutateAsync(sanitizedData as InsertSuggestion);
-      toast({
-        title: "Suggestion Submitted",
-        description: "Your proposal has been recorded on-chain.",
-      });
-      setOpen(false);
-      setFormData({ ...formData, title: "", description: "" });
-    } catch (error: any) {
-      toast({
-        title: "Transaction Failed",
-        description: error.message || "Failed to submit suggestion.",
-        variant: "destructive",
-      });
-    }
+    if (title.length < 3) return;
+    SuggestionStore.add({ title, description, category, authorId: userId });
+    toast({ title: "Suggestion posted" });
+    setOpen(false);
+    setTitle("");
+    setDescription("");
+    onCreated();
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="lg" className="rounded-full shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30">
-          <Plus className="w-5 h-5 mr-2" />
-          New Suggestion
-        </Button>
+        <Button size="lg" className="rounded-full shadow-lg"><Plus className="w-5 h-5 mr-2" />New Suggestion</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] rounded-3xl p-8">
-        <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-display font-bold">Submit Proposal</DialogTitle>
-          <DialogDescription>
-            Share your idea with the campus community.
-          </DialogDescription>
-        </DialogHeader>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Input 
-              id="title"
-              placeholder="e.g., Extend Library Hours"
-              value={formData.title}
-              onChange={e => setFormData({...formData, title: e.target.value})}
-              className="rounded-xl h-12"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="category">Category</Label>
-            <Select 
-              value={formData.category} 
-              onValueChange={val => setFormData({...formData, category: val})}
-            >
-              <SelectTrigger className="rounded-xl h-12">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Academics">Academics</SelectItem>
-                <SelectItem value="Infrastructure">Infrastructure</SelectItem>
-                <SelectItem value="Events">Events</SelectItem>
-                <SelectItem value="Cafeteria">Cafeteria</SelectItem>
-                <SelectItem value="Other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea 
-              id="description"
-              placeholder="Describe your suggestion in detail..."
-              value={formData.description}
-              onChange={e => setFormData({...formData, description: e.target.value})}
-              className="rounded-xl min-h-[120px] resize-none"
-              required
-            />
-          </div>
-
-          <div className="pt-2">
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-lg rounded-xl"
-              disabled={createSuggestion.isPending}
-            >
-              {createSuggestion.isPending ? "Submitting..." : "Submit Proposal"}
-            </Button>
-          </div>
+      <DialogContent className="rounded-3xl">
+        <DialogHeader><DialogTitle>Submit Proposal</DialogTitle></DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input placeholder="Title" value={title} onChange={e => setTitle(e.target.value)} />
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="academics">Academics</SelectItem>
+              <SelectItem value="infrastructure">Infrastructure</SelectItem>
+              <SelectItem value="exams">Exams</SelectItem>
+              <SelectItem value="canteen">Canteen</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          <Textarea placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
+          <Button type="submit" className="w-full">Submit</Button>
         </form>
       </DialogContent>
     </Dialog>

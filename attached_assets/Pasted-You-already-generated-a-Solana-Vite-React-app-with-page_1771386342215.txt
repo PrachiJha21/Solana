@@ -1,0 +1,169 @@
+You already generated a Solana + Vite + React app with pages:
+- Home, Suggestions, Notes, Requests (Wouter routing)
+- Layout nav working with SPA links
+- Optional wallet (Phantom) providers in App.tsx
+
+Now MODIFY the existing repo with the following minimal, free-plan-safe changes. 
+⚠️ DO NOT create a new project or use Autonomous Agent. 
+Make surgical edits to files under client/. Keep wallet OPTIONAL and OFF by default (no autoConnect).
+
+========================
+GOALS
+========================
+1) Suggestions: add reply, edit, delete; only the author can edit/delete. 
+2) Notes: allow PDF upload (fix "Upload not clickable" bug), with upvote/downvote and owner-only delete/edit.
+3) Requests: create requests, allow requester to mark "fulfilled" (put down), edit/delete owner-only.
+4) Add a new "Discussion" hub page (route: /discussion) focused on academics threads + replies.
+5) Identity model: If wallet connected, use pubkey as authorId; otherwise persist a random "guest-<id>" in localStorage (so owner-only checks still work).
+6) Minimal Solana integration: keep read-only SolanaStatus (devnet slot/blockhash) on Home; on-chain publish is optional & gated behind a connect button.
+7) Fix Notes PDF uploader: make the upload clickable and fully functional with robust state.
+
+========================
+DATA LAYER (client/src/lib/store.ts)
+========================
+Create or replace client/src/lib/store.ts with a localStorage-backed store and a simple identity helper.
+
+- Schema v1:
+  Suggestion {
+    id, title, description, category ("academics"|"infrastructure"|"exams"|"canteen"|"other"),
+    createdAt, authorId, votes: number, replies: Array<{ id, text, createdAt, authorId }>
+  }
+  Note {
+    id, title, subject, link (string URL, can be IPFS later), createdAt, authorId, votes: number
+  }
+  NoteRequest {
+    id, subject, details?, createdAt, requesterId, fulfilled: boolean
+  }
+- Functions: all(), add(), update(), remove(), vote(), reply(), fulfill() where applicable.
+- Identity:
+  - export function getUserId(): string
+    -> If wallet is connected (via @solana/wallet-adapter-react useWallet), return base58 pubkey.
+    -> Else, persist & return localStorage key "guestId" (random once).
+  - Use this authorId/requesterId for owner checks.
+
+========================
+SUGGESTIONS PAGE (client/src/pages/Suggestions.tsx)
+========================
+Enhance with:
+- Form: title (3..100), description (10..500), category select.
+- Create uses SuggestionStore.add({ title, description, category, authorId: getUserId() }).
+- List view shows: title, category, createdAt, author short.
+- Actions:
+  - Reply inline: adds to replies[] with authorId = getUserId().
+  - Edit: inline edit modal or in-card edit; only visible if item.authorId === getUserId().
+  - Delete: only if owner; confirmation prompt.
+- Optional "Publish to Solana (Devnet)" button:
+  - Only shown if wallet.connected === true.
+  - On click, call a placeholder async onPublish() that currently toasts "published" (no heavy on-chain).
+- Keep votes optional for suggestions (not required but allowed: up/down adjust votes >= 0).
+
+========================
+NOTES PAGE (client/src/pages/Notes.tsx)
+========================
+- Provide an uploader for PDFs AND a manual link field fallback:
+  - Title (required), Subject (required)
+  - Upload area + “Select PDF” button -> accept="application/pdf,.pdf"
+  - ALSO a "Note Link (URL)" field (Google Drive/IPFS) if user prefers link only.
+- On submit:
+  - If a PDF file selected, for now do NOT upload to IPFS (free-plan); instead create an Object URL via URL.createObjectURL(file) and store as link (with a "local" badge).
+  - Else if a link provided, store the link.
+- Store via NotesStore.add({ title, subject, link, authorId: getUserId() }).
+- List shows cards with title, subject, createdAt, votes, author short, and:
+  - Upvote/Downvote -> NotesStore.vote(id, +1/-1)
+  - Edit (owner-only): title/subject/link
+  - Delete (owner-only)
+
+**Fix the "Upload not clickable" bug**:
+- Ensure the clickable control is a <label htmlFor="pdfInput"> wrapping a styled button, and there’s a matching <input type="file" id="pdfInput" className="hidden" accept="application/pdf,.pdf" onChange={...}>
+- Confirm none of the parent containers have `pointer-events-none` or an overlay blocking clicks.
+- Ensure the "Select PDF" label/button is NOT disabled, and has higher z-index than decorative elements (use z-10).
+- Make sure onChange actually sets state for selectedFile; the submit button is enabled when (title && subject && (selectedFile or link)).
+- If using a custom <Button asChild>, pass the label correctly with `asChild` or just use a separate label to avoid pointer-events issues from Radix.
+- Provide explicit test IDs: data-testid="pdf-input" and "pdf-select" for quick sanity tests.
+
+**Implementation sketch for uploader component:**
+Create client/src/components/PdfUploader.tsx that exposes:
+  props: { onSelect(file: File | null): void }
+  - Renders the hidden input + visible label/button, and shows selected filename.
+
+========================
+REQUESTS PAGE (client/src/pages/Requests.tsx)
+========================
+- Form: subject (required), details (optional).
+- Create: RequestsStore.add({ subject, details, requesterId: getUserId() }).
+- List with actions:
+  - Mark Fulfilled toggle (only if requesterId === getUserId()) -> RequestsStore.fulfill(id, true/false)
+  - Edit & Delete (owner-only)
+
+========================
+DISCUSSION HUB (client/src/pages/Discussion.tsx)
+========================
+- Route: /discussion
+- A lightweight forum for academics: 
+  Thread { id, title, body, createdAt, authorId, replies: { id, text, createdAt, authorId }[] }
+- You may reuse SuggestionStore shapes or create ThreadStore in store.ts (same pattern as SuggestionStore).
+- UI: Create thread (title 3..100, body 10..600), list threads newest first, reply, owner edit/delete.
+
+========================
+NAV & ROUTING
+========================
+- Add "Discussion" in the Layout nav (client/src/components/ui/Layout.tsx) pointing to "/discussion".
+- Ensure Wouter routes include:
+  - <Route path="/discussion" component={Discussion} />
+
+========================
+OPTIONAL WALLET (light)
+========================
+- Keep providers in App.tsx but autoConnect={false}. 
+- Do NOT connect on mount. 
+- Use wallet ONLY to set authorId = publicKey.toBase58() when connected.
+- Keep a <SolanaStatus /> widget on Home (devnet slot + blockhash) to demonstrate live Solana integration.
+- Provide a "Connect Wallet" button somewhere simple (or keep your existing WalletButton). 
+- All CRUD must work WITHOUT a wallet (guest-<id>).
+
+========================
+UX & VALIDATION
+========================
+- Validate lengths:
+  - Suggestion title 3..100, description 10..500
+  - Note title 3..120, subject 2..40, either pdf OR link present (http/https)
+  - Request subject 2..80
+  - Replies 1..300
+- Show inline error text below fields.
+- Use toast (Toaster) for success/error messages.
+- Add aria-current="page" on active nav links.
+
+========================
+FILES TO EDIT / ADD
+========================
+Add:
+- client/src/lib/store.ts
+- client/src/components/PdfUploader.tsx
+- client/src/pages/Discussion.tsx
+
+Edit:
+- client/src/pages/Suggestions.tsx (CRUD + replies + owner checks)
+- client/src/pages/Notes.tsx (PDF uploader + upvote/downvote + owner checks; fix clickable upload as described)
+- client/src/pages/Requests.tsx (CRUD + owner checks + fulfilled toggle)
+- client/src/components/ui/Layout.tsx (add /discussion link)
+- client/src/App.tsx (ensure route for /discussion; keep wallet providers optional and autoConnect={false})
+
+========================
+DEFINITION OF DONE (acceptance)
+========================
+- I can add/edit/delete my own suggestions; others are view-only. I can reply to any suggestion; I can delete my own replies.
+- Notes page: The "Select PDF" is clickable, opens file chooser, shows selected file name, and enables submit. I can instead paste a link. Each note allows upvote/downvote, edit/delete by owner.
+- Requests page: I can create a request, edit/delete mine, and toggle "fulfilled" on my own requests.
+- Discussion page: I can create a thread, reply, and edit/delete my own content.
+- Works without wallet. If wallet is connected, authorId becomes pubkey. No autoConnect. The site runs on devnet and Home shows live Solana status (slot + blockhash).
+- Build compiles on Vercel with current settings. No autonomous agent required.
+
+========================
+TIPS TO AVOID FREE-PLAN PITFALLS
+========================
+- Do not introduce any backend or IPFS writes now; keep links as URLs or use Object URLs for demo.
+- Avoid heavy refactors; only modify files listed above.
+- Keep all logic client-side with localStorage stores.
+
+Please implement these changes now. 
+After patching, show me the list of changed files and any key code snippets for PdfUploader and store.ts so I can verify quickly.

@@ -39,6 +39,9 @@ export function Layout({ children, className }: LayoutProps) {
               <NavigationMenuItem>
                 <NavLink href="/requests">Requests</NavLink>
               </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavLink href="/discussion">Discussion</NavLink>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
 
