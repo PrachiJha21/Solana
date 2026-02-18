@@ -1,6 +1,6 @@
 # Scholarly (Campus dApp) - Security Hardened
 
-A decentralized campus hub for suggestions, notes, and requests on Solana.
+A decentralized campus hub for suggestions, notes, requests and discussion hub on Solana.
 
 ## Architecture
 ```
