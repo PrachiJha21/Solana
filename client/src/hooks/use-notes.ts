@@ -12,6 +12,7 @@ export function useNotes() {
       if (!res.ok) throw new Error("Failed to fetch notes");
       return api.notes.list.responses[200].parse(await res.json());
     },
+    refetchInterval: 10000,
   });
 }
 
