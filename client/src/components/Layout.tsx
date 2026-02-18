@@ -12,7 +12,6 @@ type LayoutProps = {
   children: React.ReactNode;
   className?: string;
 };
-
 export function Layout({ children, className }: LayoutProps) {
   return (
     <div className={cn("min-h-screen flex flex-col", className)}>
