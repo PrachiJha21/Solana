@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import Layout from "@/components/Layout";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Lightbulb, BookOpen, HelpCircle, ShieldCheck, Zap, Users } from "lucide-react";
 import { motion } from "framer-motion";
