@@ -7,10 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "@shared": path.resolve(__dirname, "../shared"), // repo-root/shared
-    },
+      "@shared": path.resolve(__dirname, "../shared") // repo-root/shared
+    }
   },
-  server: { fs: { allow: [".."] } }, // allow reading ../shared during dev
+  server: { fs: { allow: [".."] } }, // allow ../shared during dev
   build: { outDir: "dist", emptyOutDir: true },
-  base: "/",
+  base: "/"
 });
