@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    // Explicitly set rootDir to the server folder to fix the “common source directory” error
+    "rootDir": ".",
+    // Put compiled JS outside the source tree
+    "outDir": "../dist-server"
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "../client/node_modules"]
+}

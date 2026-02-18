@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    // Modern, ESM-friendly defaults
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",      // replaces deprecated "node"
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Node typings for http/express, etc.
+    "types": ["node"],
+
+    // ---- Path alias for shared/ at the repo root
+    "baseUrl": ".",                     // TS has signaled future deprecation,
+                                        // but works now; see “Notes” section.
+    "paths": {
+      "@shared/*": ["shared/*"]
+    },
+
+    // Silence upcoming TS 7.0 deprecation warnings
+    "ignoreDeprecations": "6.0"
+  }
+}
