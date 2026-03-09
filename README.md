@@ -43,9 +43,3 @@ A decentralized campus hub for suggestions, notes, requests and discussion hub o
 2. `npm run dev`
 3. Connect Phantom wallet on Devnet.
 
-## Submission Checklist
-- [x] Public repository
-- [x] On-chain program deployed to Devnet
-- [x] Input validation on both client and program
-- [x] Anti-spam fees implemented
-- [x] Security README documentation
